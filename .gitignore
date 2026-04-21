@@ -1,0 +1,26 @@
+# Python virtual environment
+backend/brain_env/
+
+# Downloaded LLM model weights (can be large, re-downloadable)
+backend/models/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# macOS
+.DS_Store
+
+# Xcode / Swift
+NoteAppXcode/*.xcodeproj/xcuserdata/
+NoteAppXcode/*.xcworkspace/xcuserdata/
+NoteAppXcode/*.xcworkspace/xcshareddata/
+NoteAppXcode/DerivedData/
+NoteAppXcode/.build/
+*.o
+*.d
+
+# Environment / secrets
+.env
+*.env
