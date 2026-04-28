@@ -5,7 +5,9 @@ attrs==26.1.0
 certifi==2026.2.25
 click==8.3.2
 cloudpickle==3.1.2
+ddgs==9.14.1
 diskcache==5.6.3
+duckduckgo_search==8.1.1
 fastapi==0.136.0
 filelock==3.29.0
 fsspec==2026.3.0
@@ -20,6 +22,7 @@ Jinja2==3.1.6
 jsonpath-ng==1.8.0
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
+lxml==6.1.0
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 mdurl==0.1.2
@@ -31,6 +34,7 @@ outlines==1.2.12
 outlines_core==0.2.14
 packaging==26.1
 pillow==12.2.0
+primp==1.2.3
 protobuf==7.34.1
 pydantic==2.13.3
 pydantic_core==2.46.3

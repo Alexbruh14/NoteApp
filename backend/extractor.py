@@ -68,7 +68,7 @@ Now extract from the following text:
 
 def extract_graph(text: str) -> dict:
     prompt = SYSTEM_PROMPT + text
-    result = json_generator(prompt)
+    result = json_generator(prompt, max_tokens=4096)
     if isinstance(result, str):
         return json.loads(result)
     return result

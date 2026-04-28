@@ -14,3 +14,13 @@ struct GraphDTO: Codable {
     let nodes: [NodeDTO]
     let edges: [EdgeDTO]
 }
+
+struct VerifyRequest: Codable {
+    let source: String
+    let target: String
+    let relationship: String
+}
+
+struct VerifyResponse: Codable {
+    let verified: Bool
+}

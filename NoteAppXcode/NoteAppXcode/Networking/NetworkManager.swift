@@ -5,6 +5,7 @@ class NetworkManager {
     static let shared = NetworkManager()
     private let extractURL = URL(string: "http://127.0.0.1:8000/extract")!
     private let extractPDFURL = URL(string: "http://127.0.0.1:8000/extract-pdf")!
+    private let verifyURL = URL(string: "http://127.0.0.1:8000/verify")!
 
     func extractGraph(from text: String, context: ModelContext) async throws {
         let graph = try await postAndDecode(to: extractURL, body: ["text": text])
@@ -14,6 +15,16 @@ class NetworkManager {
     func extractGraphFromPDF(filepath: String, context: ModelContext) async throws {
         let graph = try await postAndDecode(to: extractPDFURL, body: ["filepath": filepath])
         insertGraph(graph, into: context)
+    }
+
+    func verifyEdge(source: String, target: String, relationship: String) async throws -> Bool {
+        var request = URLRequest(url: verifyURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(VerifyRequest(source: source, target: target, relationship: relationship))
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(VerifyResponse.self, from: data)
+        return response.verified
     }
 
     private func postAndDecode(to url: URL, body: [String: String]) async throws -> GraphDTO {

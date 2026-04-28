@@ -5,6 +5,10 @@ class GraphScene: SKScene {
     // Track edges so we can redraw lines every frame
     private var edgePairs: [(sourceID: String, targetID: String, isVerified: Bool)] = []
 
+    /// Called when the user requests verification of an edge (right-click on macOS, long-press on iPad).
+    /// Parameters are (sourceNodeID, targetNodeID).
+    var onVerifyEdge: ((String, String) -> Void)?
+
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(white: 0.97, alpha: 1.0)
         physicsWorld.gravity = .zero
@@ -59,7 +63,6 @@ class GraphScene: SKScene {
     }
 
     func addEdge(from sourceID: String, to targetID: String, isVerified: Bool = false) {
-        // Skip if we already track this edge
         let alreadyExists = edgePairs.contains { $0.sourceID == sourceID && $0.targetID == targetID }
         guard !alreadyExists else { return }
 
@@ -83,13 +86,27 @@ class GraphScene: SKScene {
         edgePairs.append((sourceID: sourceID, targetID: targetID, isVerified: isVerified))
     }
 
+    /// Update the verification status of an edge in the scene's tracking array.
+    func updateEdgeVerification(sourceID: String, targetID: String) {
+        if let index = edgePairs.firstIndex(where: { $0.sourceID == sourceID && $0.targetID == targetID }) {
+            edgePairs[index].isVerified = true
+        }
+    }
+
+    /// Sync all edge verification states from the data layer.
+    func syncVerification(_ edges: [(sourceID: String, targetID: String, isVerified: Bool)]) {
+        for edge in edges {
+            if let index = edgePairs.firstIndex(where: { $0.sourceID == edge.sourceID && $0.targetID == edge.targetID }) {
+                edgePairs[index].isVerified = edge.isVerified
+            }
+        }
+    }
+
     // MARK: - Live Edge Rendering
 
     override func update(_ currentTime: TimeInterval) {
-        // Remove old edge lines
         children.filter { $0.name == "edgeLine" }.forEach { $0.removeFromParent() }
 
-        // Redraw edges at current node positions
         for edge in edgePairs {
             guard
                 let sourceNode = childNode(withName: edge.sourceID),
@@ -99,10 +116,20 @@ class GraphScene: SKScene {
             let path = CGMutablePath()
             path.move(to: sourceNode.position)
             path.addLine(to: targetNode.position)
-            let line = SKShapeNode(path: path)
+
+            let line: SKShapeNode
+            if edge.isVerified {
+                line = SKShapeNode(path: path)
+                line.strokeColor = SKColor(red: 0.2, green: 0.6, blue: 0.2, alpha: 0.8)
+                line.lineWidth = 2.5
+            } else {
+                // Dashed line for unverified edges
+                let dashedPath = path.copy(dashingWithPhase: 0, lengths: [8, 6])
+                line = SKShapeNode(path: dashedPath)
+                line.strokeColor = SKColor(white: 0.4, alpha: 0.5)
+                line.lineWidth = 1.5
+            }
             line.name = "edgeLine"
-            line.strokeColor = SKColor(white: 0.4, alpha: 0.6)
-            line.lineWidth = edge.isVerified ? 2.5 : 1.5
             line.zPosition = -1
             addChild(line)
         }
@@ -121,7 +148,41 @@ class GraphScene: SKScene {
         }
     }
 
-    // MARK: - Drag Interaction
+    // MARK: - Edge Hit Detection
+
+    /// Find the closest edge to a point, within a threshold distance.
+    private func nearestEdge(to point: CGPoint, threshold: CGFloat = 15) -> (sourceID: String, targetID: String)? {
+        var bestDistance: CGFloat = threshold
+        var bestEdge: (sourceID: String, targetID: String)?
+
+        for edge in edgePairs {
+            guard
+                let sourceNode = childNode(withName: edge.sourceID),
+                let targetNode = childNode(withName: edge.targetID)
+            else { continue }
+
+            let dist = distanceFromPoint(point, toSegmentFrom: sourceNode.position, to: targetNode.position)
+            if dist < bestDistance {
+                bestDistance = dist
+                bestEdge = (sourceID: edge.sourceID, targetID: edge.targetID)
+            }
+        }
+        return bestEdge
+    }
+
+    private func distanceFromPoint(_ p: CGPoint, toSegmentFrom a: CGPoint, to b: CGPoint) -> CGFloat {
+        let dx = b.x - a.x
+        let dy = b.y - a.y
+        let lengthSq = dx * dx + dy * dy
+        guard lengthSq > 0 else { return hypot(p.x - a.x, p.y - a.y) }
+
+        let t = max(0, min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSq))
+        let projX = a.x + t * dx
+        let projY = a.y + t * dy
+        return hypot(p.x - projX, p.y - projY)
+    }
+
+    // MARK: - Drag & Verify Interaction
     private var draggedNode: SKShapeNode?
 
 #if os(macOS)
@@ -138,6 +199,13 @@ class GraphScene: SKScene {
     override func mouseUp(with event: NSEvent) {
         draggedNode?.physicsBody?.isDynamic = true
         draggedNode = nil
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        let location = event.location(in: self)
+        if let edge = nearestEdge(to: location) {
+            onVerifyEdge?(edge.sourceID, edge.targetID)
+        }
     }
 #else
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {

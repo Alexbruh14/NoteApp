@@ -13,9 +13,16 @@ struct ContentView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Left: physics canvas
+            // Left: physics canvas with overlays
             CanvasRepresentable()
                 .frame(minWidth: 500)
+                .overlay(alignment: .center) {
+                    SummaryWidget()
+                }
+                .overlay(alignment: .topTrailing) {
+                    ImportantTopicsWidget()
+                        .padding()
+                }
 
             Divider()
 
