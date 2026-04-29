@@ -5,42 +5,39 @@ import SwiftUI
 final class UserSettings {
     static let shared = UserSettings()
 
-    var defaultDurationMinutes: Int {
-        get { UserDefaults.standard.integer(forKey: "defaultDuration").nonZero ?? 60 }
-        set { UserDefaults.standard.set(newValue, forKey: "defaultDuration") }
-    }
+    var defaultDurationMinutes: Int { didSet { UserDefaults.standard.set(defaultDurationMinutes, forKey: "defaultDuration") } }
+    var timelineStartHour: Int      { didSet { UserDefaults.standard.set(timelineStartHour, forKey: "timelineStartHour") } }
+    var reminderOffsetMinutes: Int  { didSet { UserDefaults.standard.set(reminderOffsetMinutes, forKey: "reminderOffset") } }
+    var hapticFeedbackEnabled: Bool { didSet { UserDefaults.standard.set(hapticFeedbackEnabled, forKey: "hapticFeedback") } }
+    var showEndNotifications: Bool  { didSet { UserDefaults.standard.set(showEndNotifications, forKey: "showEndNotifications") } }
+    var showActiveEventBadge: Bool  { didSet { UserDefaults.standard.set(showActiveEventBadge, forKey: "showActiveEventBadge") } }
 
-    var timelineStartHour: Int {
-        get { UserDefaults.standard.integer(forKey: "timelineStartHour").nonZero ?? 6 }
-        set { UserDefaults.standard.set(newValue, forKey: "timelineStartHour") }
-    }
+    // MARK: - Dynamic Island Customization
 
-    var reminderOffsetMinutes: Int {
-        get {
-            let val = UserDefaults.standard.object(forKey: "reminderOffset") as? Int
-            return val ?? 5
-        }
-        set { UserDefaults.standard.set(newValue, forKey: "reminderOffset") }
-    }
+    var compactLeadingStyle: String { didSet { UserDefaults.standard.set(compactLeadingStyle, forKey: "compactLeadingStyle") } }
+    var minimalStyle: String        { didSet { UserDefaults.standard.set(minimalStyle, forKey: "minimalStyle") } }
+    var expandedShowIcon: Bool      { didSet { UserDefaults.standard.set(expandedShowIcon, forKey: "expandedShowIcon") } }
+    var expandedShowTimer: Bool     { didSet { UserDefaults.standard.set(expandedShowTimer, forKey: "expandedShowTimer") } }
+    var expandedShowNotes: Bool     { didSet { UserDefaults.standard.set(expandedShowNotes, forKey: "expandedShowNotes") } }
+    var expandedShowLinks: Bool     { didSet { UserDefaults.standard.set(expandedShowLinks, forKey: "expandedShowLinks") } }
 
-    var hapticFeedbackEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: "hapticFeedback") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "hapticFeedback") }
-    }
-
-    var showEndNotifications: Bool {
-        get { UserDefaults.standard.object(forKey: "showEndNotifications") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "showEndNotifications") }
-    }
-
-    var showActiveEventBadge: Bool {
-        get { UserDefaults.standard.object(forKey: "showActiveEventBadge") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "showActiveEventBadge") }
+    private init() {
+        let ud = UserDefaults.standard
+        defaultDurationMinutes = (ud.integer(forKey: "defaultDuration").nonZero) ?? 60
+        timelineStartHour      = (ud.integer(forKey: "timelineStartHour").nonZero) ?? 6
+        reminderOffsetMinutes  = ud.object(forKey: "reminderOffset") as? Int ?? 5
+        hapticFeedbackEnabled  = ud.object(forKey: "hapticFeedback") as? Bool ?? true
+        showEndNotifications   = ud.object(forKey: "showEndNotifications") as? Bool ?? true
+        showActiveEventBadge   = ud.object(forKey: "showActiveEventBadge") as? Bool ?? true
+        compactLeadingStyle    = ud.string(forKey: "compactLeadingStyle") ?? "capsule"
+        minimalStyle           = ud.string(forKey: "minimalStyle") ?? "dot"
+        expandedShowIcon       = ud.object(forKey: "expandedShowIcon") as? Bool ?? true
+        expandedShowTimer      = ud.object(forKey: "expandedShowTimer") as? Bool ?? true
+        expandedShowNotes      = ud.object(forKey: "expandedShowNotes") as? Bool ?? true
+        expandedShowLinks      = ud.object(forKey: "expandedShowLinks") as? Bool ?? true
     }
 }
 
 private extension Int {
-    var nonZero: Int? {
-        self == 0 ? nil : self
-    }
+    var nonZero: Int? { self == 0 ? nil : self }
 }
