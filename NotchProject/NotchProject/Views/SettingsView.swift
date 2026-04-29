@@ -1,11 +1,21 @@
 import SwiftUI
+import EventKit
 
 struct SettingsView: View {
     @State private var settings = UserSettings.shared
+    @State private var calendarService = CalendarService.shared
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    NavigationLink {
+                        NotchCustomizationView()
+                    } label: {
+                        Label("Dynamic Island", systemImage: "capsule.portrait.fill")
+                    }
+                }
+
                 Section("Event Defaults") {
                     Picker("Default Duration", selection: $settings.defaultDurationMinutes) {
                         Text("30 min").tag(30)
@@ -40,6 +50,29 @@ struct SettingsView: View {
                     Toggle(isOn: $settings.showActiveEventBadge) {
                         Label("App Badge for Active Events", systemImage: "app.badge")
                     }
+                }
+
+                Section {
+                    Toggle(isOn: $settings.showCalendarEvents) {
+                        Label("Show Apple Calendar Events", systemImage: "calendar")
+                    }
+                    .onChange(of: settings.showCalendarEvents) { _, enabled in
+                        if enabled && !calendarService.isAuthorized {
+                            Task { await calendarService.requestAccess() }
+                        }
+                    }
+
+                    if settings.showCalendarEvents && !calendarService.isAuthorized {
+                        Button {
+                            Task { await calendarService.requestAccess() }
+                        } label: {
+                            Label("Connect Calendar", systemImage: "link.circle.fill")
+                        }
+                    }
+                } header: {
+                    Text("Calendar")
+                } footer: {
+                    Text("Reads events from your Apple Calendar and shows them alongside your scheduled time blocks.")
                 }
 
                 Section("Feedback") {

@@ -10,16 +10,28 @@ struct NotchWidgetsLiveActivity: Widget {
             DynamicIsland {
                 expandedView(context: context)
             } compactLeading: {
-                Capsule()
-                    .fill(Color(hex: context.state.colorHex))
-                    .frame(width: 6, height: 14)
+                if context.state.compactLeadingStyle == "icon" {
+                    Image(systemName: context.state.presetIcon)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(hex: context.state.colorHex))
+                } else {
+                    Capsule()
+                        .fill(Color(hex: context.state.colorHex))
+                        .frame(width: 6, height: 14)
+                }
             } compactTrailing: {
                 Color.clear
                     .frame(width: 0)
             } minimal: {
-                Circle()
-                    .fill(Color(hex: context.state.colorHex))
-                    .frame(width: 10, height: 10)
+                if context.state.minimalStyle == "icon" {
+                    Image(systemName: context.state.presetIcon)
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color(hex: context.state.colorHex))
+                } else {
+                    Circle()
+                        .fill(Color(hex: context.state.colorHex))
+                        .frame(width: 10, height: 10)
+                }
             }
         }
     }
@@ -58,20 +70,34 @@ struct NotchWidgetsLiveActivity: Widget {
     @DynamicIslandExpandedContentBuilder
     private func expandedView(context: ActivityViewContext<ScheduleActivityAttributes>) -> DynamicIslandExpandedContent<some View> {
         DynamicIslandExpandedRegion(.leading) {
-            RoundedRectangle(cornerRadius: 3)
-                .fill(Color(hex: context.state.colorHex))
-                .frame(width: 4, height: 30)
+            if context.state.expandedShowIcon {
+                Image(systemName: context.state.presetIcon)
+                    .font(.title3)
+                    .foregroundStyle(Color(hex: context.state.colorHex))
+                    .offset(x: 10, y: 13) //positioning of icon durring expanded view
+            }
         }
 
         DynamicIslandExpandedRegion(.trailing) {
+            if context.state.expandedShowTimer {
+                Text(context.state.endTime, style: .timer)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+                    .offset(x: -8, y: 5) //positioning of timer
+            }
+        }
+
+        DynamicIslandExpandedRegion(.center) {
             Text(context.state.eventTitle)
                 .font(.headline)
                 .lineLimit(1)
+                .offset(x: -95, y: -3)
         }
 
         DynamicIslandExpandedRegion(.bottom) {
             VStack(alignment: .leading, spacing: 8) {
-                if !context.state.notes.isEmpty {
+                if context.state.expandedShowNotes && !context.state.notes.isEmpty {
                     Text(context.state.notes)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -79,18 +105,26 @@ struct NotchWidgetsLiveActivity: Widget {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                if !context.state.linkURLs.isEmpty {
+                if context.state.expandedShowLinks && !context.state.linkURLs.isEmpty {
                     ForEach(Array(zip(context.state.linkTitles, context.state.linkURLs)), id: \.1) { title, urlString in
-                        if let url = URL(string: urlString) {
-                            Link(destination: url) {
+                        if let encoded = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                           let deepLink = URL(string: "notchproject://openlink?url=\(encoded)") {
+                            Link(destination: deepLink) {
                                 HStack(spacing: 6) {
-                                    Image(systemName: urlString.lowercased().hasSuffix(".pdf") ? "doc.fill" : "link")
+                                    Image(systemName: urlString.lowercased().hasSuffix(".pdf") ? "doc.fill" : "safari")
                                         .font(.caption2)
                                     Text(title)
                                         .font(.caption)
                                         .lineLimit(1)
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.caption2)
                                 }
                                 .foregroundStyle(Color(hex: context.state.colorHex))
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .background(Color(hex: context.state.colorHex).opacity(0.15))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
                             }
                         }
                     }

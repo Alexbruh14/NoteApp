@@ -11,8 +11,9 @@ final class CalendarService {
     var isAuthorized: Bool {
         if #available(iOS 17.0, *) {
             return status == .fullAccess
+        } else {
+            return status == .authorized // swiftlint:disable:this legacy_objc_type
         }
-        return status == .authorized
     }
 
     private init() {

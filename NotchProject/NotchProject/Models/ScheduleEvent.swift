@@ -12,6 +12,8 @@ final class ScheduleEvent {
     var presetType: PresetType?
     var enableDND: Bool
     var colorHex: String
+    var isReminder: Bool
+    var calendarEventID: String?
 
     @Relationship(deleteRule: .cascade)
     var links: [EventLink]
@@ -24,7 +26,9 @@ final class ScheduleEvent {
         presetType: PresetType? = nil,
         enableDND: Bool = false,
         colorHex: String = "007AFF",
-        links: [EventLink] = []
+        links: [EventLink] = [],
+        isReminder: Bool = false,
+        calendarEventID: String? = nil
     ) {
         self.id = UUID()
         self.title = title
@@ -35,6 +39,8 @@ final class ScheduleEvent {
         self.enableDND = enableDND
         self.colorHex = colorHex
         self.links = links
+        self.isReminder = isReminder
+        self.calendarEventID = calendarEventID
     }
 
     var isActive: Bool {
@@ -62,6 +68,16 @@ final class ScheduleEvent {
 }
 
 extension Color {
+    var hexString: String {
+        let uiColor = UIColor(self)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
+    }
+
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0

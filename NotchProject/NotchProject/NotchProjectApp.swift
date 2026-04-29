@@ -23,6 +23,9 @@ struct NotchProjectApp: App {
                     requestNotificationPermission()
                     startLiveActivitiesForActiveEvents()
                 }
+                .onOpenURL { url in
+                    handleIncomingURL(url)
+                }
         }
         .modelContainer(modelContainer)
     }
@@ -34,6 +37,17 @@ struct NotchProjectApp: App {
                 print("Notification permission error: \(error.localizedDescription)")
             }
         }
+    }
+
+    private func handleIncomingURL(_ url: URL) {
+        guard url.scheme == "notchproject",
+              url.host == "openlink",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let urlParam = components.queryItems?.first(where: { $0.name == "url" })?.value,
+              let targetURL = URL(string: urlParam)
+        else { return }
+
+        UIApplication.shared.open(targetURL)
     }
 
     @MainActor

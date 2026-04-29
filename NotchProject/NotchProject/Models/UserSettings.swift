@@ -21,6 +21,10 @@ final class UserSettings {
     var expandedShowNotes: Bool     { didSet { UserDefaults.standard.set(expandedShowNotes, forKey: "expandedShowNotes") } }
     var expandedShowLinks: Bool     { didSet { UserDefaults.standard.set(expandedShowLinks, forKey: "expandedShowLinks") } }
 
+    // MARK: - Calendar Integration
+
+    var showCalendarEvents: Bool    { didSet { UserDefaults.standard.set(showCalendarEvents, forKey: "showCalendarEvents") } }
+
     private init() {
         let ud = UserDefaults.standard
         defaultDurationMinutes = (ud.integer(forKey: "defaultDuration").nonZero) ?? 60
@@ -35,6 +39,7 @@ final class UserSettings {
         expandedShowTimer      = ud.object(forKey: "expandedShowTimer") as? Bool ?? true
         expandedShowNotes      = ud.object(forKey: "expandedShowNotes") as? Bool ?? true
         expandedShowLinks      = ud.object(forKey: "expandedShowLinks") as? Bool ?? true
+        showCalendarEvents     = ud.object(forKey: "showCalendarEvents") as? Bool ?? false
     }
 }
 

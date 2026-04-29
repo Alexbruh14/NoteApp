@@ -5,6 +5,7 @@ struct DayTimelineView: View {
     let events: [ScheduleEvent]
     let selectedDate: Date
     var onEventTap: (ScheduleEvent) -> Void = { _ in }
+    var onEventDelete: (ScheduleEvent) -> Void = { _ in }
 
     private let hourHeight: CGFloat = 60
     private let startHour = 6
@@ -90,6 +91,18 @@ struct DayTimelineView: View {
 
             EventCardView(event: event, hourHeight: hourHeight) {
                 onEventTap(event)
+            }
+            .contextMenu {
+                Button {
+                    onEventTap(event)
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                Button(role: .destructive) {
+                    onEventDelete(event)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
             }
             .frame(height: cardHeight)
             .padding(.leading, leadingWidth + 12)

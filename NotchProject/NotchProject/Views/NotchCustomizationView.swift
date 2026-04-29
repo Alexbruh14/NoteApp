@@ -28,6 +28,24 @@ struct NotchCustomizationView: View {
         }
         .navigationTitle("Dynamic Island")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: settings.compactLeadingStyle) { _, _ in
+            LiveActivityManager.shared.updateAllActivitiesForSettingsChange()
+        }
+        .onChange(of: settings.minimalStyle) { _, _ in
+            LiveActivityManager.shared.updateAllActivitiesForSettingsChange()
+        }
+        .onChange(of: settings.expandedShowIcon) { _, _ in
+            LiveActivityManager.shared.updateAllActivitiesForSettingsChange()
+        }
+        .onChange(of: settings.expandedShowTimer) { _, _ in
+            LiveActivityManager.shared.updateAllActivitiesForSettingsChange()
+        }
+        .onChange(of: settings.expandedShowNotes) { _, _ in
+            LiveActivityManager.shared.updateAllActivitiesForSettingsChange()
+        }
+        .onChange(of: settings.expandedShowLinks) { _, _ in
+            LiveActivityManager.shared.updateAllActivitiesForSettingsChange()
+        }
     }
 
     // MARK: - Preview
@@ -208,35 +226,41 @@ struct NotchCustomizationView: View {
     // MARK: - Settings Sections
 
     private var compactSettingsSection: some View {
-        Section("Compact Settings") {
+        Section {
             Picker("Leading Indicator", selection: $settings.compactLeadingStyle) {
                 Text("Color Capsule").tag("capsule")
                 Text("Preset Icon").tag("icon")
             }
+        } header: {
+            Text("Compact Settings")
         } footer: {
             Text("The resting state of the Dynamic Island when your event is active.")
         }
     }
 
     private var minimalSettingsSection: some View {
-        Section("Minimal Settings") {
+        Section {
             Picker("Indicator Style", selection: $settings.minimalStyle) {
                 Text("Color Dot").tag("dot")
                 Text("Preset Icon").tag("icon")
             }
+        } header: {
+            Text("Minimal Settings")
         } footer: {
             Text("Shown when another app is also using the Dynamic Island.")
         }
     }
 
     private var expandedSettingsSection: some View {
-        Section("Expanded Settings") {
+        Section {
             Toggle("Preset Icon", isOn: $settings.expandedShowIcon)
             Toggle("Countdown Timer", isOn: $settings.expandedShowTimer)
             Toggle("Notes", isOn: $settings.expandedShowNotes)
             Toggle("Links", isOn: $settings.expandedShowLinks)
+        } header: {
+            Text("Expanded Settings")
         } footer: {
-            Text("Content shown when you press and hold the Dynamic Island. Changes apply to new events.")
+            Text("Content shown when you press and hold the Dynamic Island. Changes apply instantly to active events.")
         }
     }
 }

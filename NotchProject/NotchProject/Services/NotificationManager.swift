@@ -8,6 +8,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     static let startCategoryID = "EVENT_START"
     static let endCategoryID = "EVENT_END"
+    static let reminderCategoryID = "REMINDER"
     static let snoozeActionID = "SNOOZE_5MIN"
     static let dismissActionID = "DISMISS"
     static let openLinksActionID = "OPEN_LINKS"
@@ -54,7 +55,36 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             intentIdentifiers: []
         )
 
-        center.setNotificationCategories([startCategory, endCategory])
+        let reminderCategory = UNNotificationCategory(
+            identifier: Self.reminderCategoryID,
+            actions: [dismissAction],
+            intentIdentifiers: []
+        )
+
+        center.setNotificationCategories([startCategory, endCategory, reminderCategory])
+    }
+
+    // MARK: - Schedule Reminder
+
+    func scheduleReminder(title: String, notes: String, fireDate: Date) {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        if !notes.isEmpty { content.body = notes }
+        content.sound = .default
+        content.interruptionLevel = .timeSensitive
+        content.categoryIdentifier = Self.reminderCategoryID
+
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: fireDate
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "reminder-\(UUID().uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        center.add(request)
     }
 
     // MARK: - Schedule Notifications for an Event
@@ -71,6 +101,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
             startContent.title = event.title
             startContent.body = startNotificationBody(for: event)
             startContent.sound = .default
+            startContent.interruptionLevel = .timeSensitive
+            startContent.relevanceScore = 1.0
             startContent.categoryIdentifier = Self.startCategoryID
             startContent.userInfo = ["eventID": event.id.uuidString]
 
@@ -121,6 +153,12 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         let ids = [startNotificationID(for: event), endNotificationID(for: event)]
         center.removePendingNotificationRequests(withIdentifiers: ids)
         center.removeDeliveredNotifications(withIdentifiers: ids)
+    }
+
+    func removeStartNotification(for event: ScheduleEvent) {
+        let id = startNotificationID(for: event)
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+        center.removeDeliveredNotifications(withIdentifiers: [id])
     }
 
     func scheduleSnooze(for event: ScheduleEvent) {

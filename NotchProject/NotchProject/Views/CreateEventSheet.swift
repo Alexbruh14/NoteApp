@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import EventKit
 
 struct PendingLink: Identifiable {
     let id = UUID()
@@ -15,6 +16,13 @@ struct CreateEventSheet: View {
     var editingEvent: ScheduleEvent?
     var initialDate: Date
 
+    // Pre-fill values set when importing from Apple Calendar
+    private let importTitle: String?
+    private let importStart: Date?
+    private let importEnd: Date?
+    private let importNotes: String?
+    private let importColorHex: String?
+
     @State private var title = ""
     @State private var startTime = Date()
     @State private var endTime = Date()
@@ -27,13 +35,36 @@ struct CreateEventSheet: View {
     @State private var linkTitle = ""
     @State private var pendingLinks: [PendingLink] = []
     @State private var showAddLink = false
-    @State private var durationMinutes = 60
 
     private var isEditing: Bool { editingEvent != nil }
 
     init(editingEvent: ScheduleEvent? = nil, initialDate: Date = Date()) {
         self.editingEvent = editingEvent
         self.initialDate = initialDate
+        self.importTitle = nil
+        self.importStart = nil
+        self.importEnd = nil
+        self.importNotes = nil
+        self.importColorHex = nil
+    }
+
+    init(importingFrom ekEvent: EKEvent) {
+        self.editingEvent = nil
+        self.initialDate = ekEvent.startDate
+        self.importTitle = ekEvent.title
+        self.importStart = ekEvent.startDate
+        self.importEnd = ekEvent.endDate
+        self.importNotes = ekEvent.notes
+        // Extract the calendar's color as a hex string
+        var hex = "007AFF"
+        if let cgColor = ekEvent.calendar?.cgColor,
+           let comps = cgColor.components, comps.count >= 3 {
+            let r = Int((comps[0] * 255).rounded())
+            let g = Int((comps[1] * 255).rounded())
+            let b = Int((comps[2] * 255).rounded())
+            hex = String(format: "%02X%02X%02X", r, g, b)
+        }
+        self.importColorHex = hex
     }
 
     var body: some View {
@@ -82,7 +113,7 @@ struct CreateEventSheet: View {
     }
 
     private var presetSection: some View {
-        Section("Activity Type") {
+        Section("Activity Type") {    //Event Activity preset selector
             PresetSelectorView(selectedPreset: $selectedPreset) { preset in
                 colorHex = preset.defaultColor
                 if title.isEmpty {
@@ -98,32 +129,13 @@ struct CreateEventSheet: View {
 
     private var timeSection: some View {
         Section("Time Block") {
-            DatePicker("Starts", selection: $startTime)
-
-            Picker("Duration", selection: $durationMinutes) {
-                Text("15 min").tag(15)
-                Text("30 min").tag(30)
-                Text("45 min").tag(45)
-                Text("1 hour").tag(60)
-                Text("1.5 hours").tag(90)
-                Text("2 hours").tag(120)
-                Text("2.5 hours").tag(150)
-                Text("3 hours").tag(180)
-                Text("4 hours").tag(240)
-            }
-            .onChange(of: durationMinutes) {
-                endTime = startTime.addingTimeInterval(Double(durationMinutes) * 60)
-            }
-            .onChange(of: startTime) {
-                endTime = startTime.addingTimeInterval(Double(durationMinutes) * 60)
-            }
-
-            HStack {
-                Text("Ends")
-                Spacer()
-                Text(endTimeString)
-                    .foregroundStyle(.secondary)
-            }
+            DatePicker("From", selection: $startTime, displayedComponents: [.date, .hourAndMinute])
+                .onChange(of: startTime) {
+                    if endTime <= startTime {
+                        endTime = startTime.addingTimeInterval(3600)
+                    }
+                }
+            DatePicker("To", selection: $endTime, in: startTime..., displayedComponents: [.date, .hourAndMinute])
         }
     }
 
@@ -223,17 +235,21 @@ struct CreateEventSheet: View {
             selectedPreset = event.presetType
             enableDND = event.enableDND
             colorHex = event.colorHex
-            durationMinutes = Int(event.duration / 60)
             pendingLinks = event.links.map {
                 PendingLink(title: $0.title, urlString: $0.urlString, type: $0.type)
             }
+        } else if let s = importStart {
+            title = importTitle ?? ""
+            notes = importNotes ?? ""
+            colorHex = importColorHex ?? "007AFF"
+            startTime = s
+            endTime = importEnd ?? s.addingTimeInterval(3600)
         } else {
             let calendar = Calendar.current
             let hour = calendar.component(.hour, from: Date())
             let nextHour = max(hour + 1, 8)
             startTime = calendar.date(bySettingHour: nextHour, minute: 0, second: 0, of: initialDate) ?? initialDate
-            durationMinutes = UserSettings.shared.defaultDurationMinutes
-            endTime = startTime.addingTimeInterval(Double(durationMinutes) * 60)
+            endTime = startTime.addingTimeInterval(Double(UserSettings.shared.defaultDurationMinutes) * 60)
         }
     }
 
@@ -252,6 +268,8 @@ struct CreateEventSheet: View {
             event.colorHex = colorHex
             event.links.forEach { modelContext.delete($0) }
             event.links = eventLinks
+            NotificationManager.shared.scheduleNotifications(for: event)
+            LiveActivityManager.shared.updateActivity(for: event)
         } else {
             let event = ScheduleEvent(
                 title: title,
@@ -264,6 +282,9 @@ struct CreateEventSheet: View {
                 links: eventLinks
             )
             modelContext.insert(event)
+            NotificationManager.shared.scheduleNotifications(for: event)
+            print("[SaveEvent] Created '\(event.title)' start=\(event.startTime) end=\(event.endTime)")
+            LiveActivityManager.shared.startActivityIfNeeded(for: event)
         }
 
         dismiss()
@@ -278,11 +299,5 @@ struct CreateEventSheet: View {
         linkTitle = ""
         linkURLString = ""
         showAddLink = false
-    }
-
-    private var endTimeString: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: endTime)
     }
 }

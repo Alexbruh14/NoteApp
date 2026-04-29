@@ -8,7 +8,8 @@ final class LiveActivityManager {
     private var activeActivities: [String: String] = [:]
 
     private func contentState(for event: ScheduleEvent) -> ScheduleActivityAttributes.ContentState {
-        ScheduleActivityAttributes.ContentState(
+        let settings = UserSettings.shared
+        return ScheduleActivityAttributes.ContentState(
             eventTitle: event.title,
             presetIcon: event.presetIcon,
             colorHex: event.colorHex,
@@ -16,7 +17,13 @@ final class LiveActivityManager {
             notes: event.notes,
             linkTitles: event.links.map(\.title),
             linkURLs: event.links.map(\.urlString),
-            enableDND: event.enableDND
+            enableDND: event.enableDND,
+            compactLeadingStyle: settings.compactLeadingStyle,
+            minimalStyle: settings.minimalStyle,
+            expandedShowIcon: settings.expandedShowIcon,
+            expandedShowTimer: settings.expandedShowTimer,
+            expandedShowNotes: settings.expandedShowNotes,
+            expandedShowLinks: settings.expandedShowLinks
         )
     }
 
@@ -71,6 +78,33 @@ final class LiveActivityManager {
         )
         let content = ActivityContent(state: finalState, staleDate: nil)
         Task { await activity.end(content, dismissalPolicy: .immediate) }
+    }
+
+    func updateAllActivitiesForSettingsChange() {
+        let settings = UserSettings.shared
+        Task {
+            for activity in Activity<ScheduleActivityAttributes>.activities {
+                let s = activity.content.state
+                let newState = ScheduleActivityAttributes.ContentState(
+                    eventTitle: s.eventTitle,
+                    presetIcon: s.presetIcon,
+                    colorHex: s.colorHex,
+                    endTime: s.endTime,
+                    notes: s.notes,
+                    linkTitles: s.linkTitles,
+                    linkURLs: s.linkURLs,
+                    enableDND: s.enableDND,
+                    compactLeadingStyle: settings.compactLeadingStyle,
+                    minimalStyle: settings.minimalStyle,
+                    expandedShowIcon: settings.expandedShowIcon,
+                    expandedShowTimer: settings.expandedShowTimer,
+                    expandedShowNotes: settings.expandedShowNotes,
+                    expandedShowLinks: settings.expandedShowLinks
+                )
+                let content = ActivityContent(state: newState, staleDate: s.endTime)
+                await activity.update(content)
+            }
+        }
     }
 
     func stopAllActivities() {
